@@ -230,7 +230,27 @@ class _RegisterState extends State<Register> {
                               style: TextStyle(fontSize: 18,color: Colors.white),
                             ),
                           ),
-                  )
+                  ),
+                  const SizedBox(height: 20),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("¿Ya tenés una cuenta?"),
+                    TextButton(
+                      onPressed: () {
+                        appRouter.push('/login');
+                      },
+                      child: const Text(
+                        'Iniciá Sesión',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 ],
               ),
             ),
