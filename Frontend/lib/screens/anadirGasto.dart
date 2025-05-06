@@ -3,9 +3,17 @@ import 'package:app_gastos_tp3_grupo8/core/app_routes.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 
-class AnadirGasto extends StatelessWidget {
+class AnadirGasto extends StatefulWidget {
   const AnadirGasto({super.key});
 
+  @override
+  State<AnadirGasto> createState() => _AnadirGastoState();
+}
+
+class _AnadirGastoState extends State<AnadirGasto> {
+
+  final List<String> categorias = ['Supermercado', 'Ropa', 'Juegos', 'Transporte', 'Otros'];
+String? categoriaSeleccionada;
   @override
   Widget build(BuildContext context) {
     TextEditingController fechaController = TextEditingController();
@@ -102,6 +110,32 @@ class AnadirGasto extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
+                  // ✅ Campo categoría desplegable
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Categoría',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                  ),
+                  value: categoriaSeleccionada,
+                  items: categorias.map((String categoria) {
+                    return DropdownMenuItem<String>(
+                      value: categoria,
+                      child: Text(categoria),
+                    );
+                  }).toList(),
+                  onChanged: (String? nuevaCategoria) {
+                    setState(() {
+                      categoriaSeleccionada = nuevaCategoria;
+                    });
+                  },
+                ),
+
+                const SizedBox(height: 20),
+                
                 ElevatedButtonTheme(
                   data: ElevatedButtonThemeData(
                     style: ElevatedButton.styleFrom(
