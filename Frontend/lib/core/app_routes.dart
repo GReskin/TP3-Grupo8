@@ -1,8 +1,8 @@
 
 import 'package:go_router/go_router.dart';
-import '../../../Frontend/presentation/screens/login.dart';
-import '../../../Frontend/presentation/screens/register.dart';
-import '../../../Frontend/presentation/screens/home.dart';
+import '../screens/login.dart';
+import '../screens/register.dart';
+import '../screens/home.dart';
 final appRouter = GoRouter(
   
   initialLocation: '/register',

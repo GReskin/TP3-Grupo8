@@ -1,4 +1,4 @@
-import 'package:app_gastos_tp3_grupo8/Backend/core/routes/app_routes.dart';
+import 'package:app_gastos_tp3_grupo8/core/app_routes.dart';
 import 'package:flutter/material.dart';
 
 
