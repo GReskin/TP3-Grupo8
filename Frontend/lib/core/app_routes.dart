@@ -8,7 +8,7 @@ import '../screens/register.dart';
 import '../screens/home.dart';
 final appRouter = GoRouter(
   
-  initialLocation: '/home',
+  initialLocation: '/register',
 
   routes: [
 

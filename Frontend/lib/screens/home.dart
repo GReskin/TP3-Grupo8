@@ -4,7 +4,7 @@ import 'package:app_gastos_tp3_grupo8/entities/menu.dart';
 import 'package:flutter/material.dart';
 
 class Home extends StatefulWidget {
-  Home({super.key});
+  const Home({super.key});
 
   @override
   State<Home> createState() => _HomeState();

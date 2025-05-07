@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class Gastos extends StatefulWidget {
-   Gastos({super.key});
+   const Gastos({super.key});
 
   @override
   State<Gastos> createState() => _GastosState();

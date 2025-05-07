@@ -1,5 +1,7 @@
 import 'package:app_gastos_tp3_grupo8/core/app_routes.dart';
 import 'package:flutter/material.dart';
+import '../models/usuario.dart';
+import '../services/usuarioService.dart';
 
 
 class Register extends StatefulWidget {
@@ -210,11 +212,31 @@ class _RegisterState extends State<Register> {
                                 setState(() {
                                   _isLoading = true;
                                 });
+                                final partesFecha = _birthDateController.text.split('/');
+                                final fechaFormateada = '${partesFecha[2]}-${partesFecha[1]}-${partesFecha[0]}';
 
-                                await Future.delayed(const Duration(seconds: 2));
+                                final nuevoUsuario = Usuario(
+                                  usuario: _nameController.text.trim(),
+                                  email: _emailController.text.trim(),
+                                  fechaNacimiento: fechaFormateada,
+                                  password: _passwordController.text,
+                                );
 
-                                if (mounted) {
-                                  appRouter.push('/login'); 
+                                final creado = await UsuarioService.crearUsuario(nuevoUsuario);
+
+                                setState(() {
+                                  _isLoading = false;
+                                });
+
+                                if (creado && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Usuario registrado correctamente')),
+                                  );
+                                  appRouter.push('/login');
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error al registrar usuario')),
+                                  );
                                 }
                               }
                             },
