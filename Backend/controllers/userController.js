@@ -78,7 +78,11 @@ const login = async (req, res) => {
     }
     
     console.log("Login exitoso de user:" + "[email: " + email + ", contraseña: " + contraseña + "]");
-    return res.status(200).json({ message: 'Login exitoso' });
+    return res.status(200).json({
+      message: 'Login exitoso',
+      id: user.id,   
+      usuario: user.usuario
+    });
 
   } catch (err) {
     console.error('Error al procesar login:', err);
