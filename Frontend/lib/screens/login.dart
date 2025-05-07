@@ -1,5 +1,6 @@
 import 'package:app_gastos_tp3_grupo8/core/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:app_gastos_tp3_grupo8/services/usuarioService.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -11,6 +12,9 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   bool _obscureText = true;
   bool _isLoading = false;
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +54,7 @@ class _LoginState extends State<Login> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
+                  controller: _emailController,  
                   decoration: InputDecoration(
                     hintText: 'Correo electrónico',
                     labelText: 'Email',
@@ -65,6 +70,7 @@ class _LoginState extends State<Login> {
                 const SizedBox(height: 20),
 
                 TextFormField(
+                  controller: _passwordController, 
                   obscureText: _obscureText,
                   decoration: InputDecoration(
                     hintText: 'Contraseña',
@@ -91,36 +97,53 @@ class _LoginState extends State<Login> {
 
                 SizedBox(
                   width: double.infinity,
-                  child:
-                      _isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : ElevatedButton(
-                            onPressed: () async {
-                              setState(() {
-                                _isLoading = true;
-                              });
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ElevatedButton(
+                          onPressed: () async {
+                            setState(() {
+                              _isLoading = true;
+                            });
 
-                              await Future.delayed(const Duration(seconds: 2));
+                            final email = _emailController.text.trim();
+                            final password = _passwordController.text.trim();
 
+                            final success = await UsuarioService.login(email, password);
+
+                            setState(() {
+                              _isLoading = false;
+                            });
+
+                            if (success) {
                               if (mounted) {
                                 appRouter.push('/home');
                               }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: Colors.blueAccent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                            ),
-                            child: const Text(
-                              'Ingresar',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                              ),
+                            } else {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Credenciales incorrectas'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: Colors.blueAccent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
                             ),
                           ),
+                          child: const Text(
+                            'Ingresar',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                 ),
 
                 const SizedBox(height: 20),

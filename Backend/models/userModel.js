@@ -12,6 +12,12 @@ const getUserById = async (id) => {
   return res.rows[0];
 };
 
+const getUserByEmail = async (email) => {
+  const db = await dbPromise;
+  const res = await db.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+  return res.rows[0];
+};
+
 const createUser = async ({ usuario, contraseña, fecha_nacimiento, email }) => {
   const db = await dbPromise;
   const res = await db.query(
@@ -48,6 +54,7 @@ const deleteUser = async (id) => {
 module.exports = {
   getAllUsers,
   getUserById,
+  getUserByEmail,
   createUser,
   updateUser,
   deleteUser,
