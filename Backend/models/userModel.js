@@ -26,7 +26,7 @@ const createUser = async ({ usuario, contraseña, fecha_nacimiento, email }) => 
      RETURNING *`,
     [usuario, contraseña, fecha_nacimiento, email]
   );
-  console.log("Agregado user:" + "[usuario: " + usuario + ", contraseña: " + contraseña + ", fecha_nacimiento: " + fecha_nacimiento + ", email: " + email);
+  console.log("Agregado user:" + "[usuario: " + usuario + ", contraseña: " + contraseña + ", fecha_nacimiento: " + fecha_nacimiento + ", email: " + email + "]");
   return res.rows[0];
 };
 

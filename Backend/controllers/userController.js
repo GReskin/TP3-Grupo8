@@ -76,7 +76,8 @@ const login = async (req, res) => {
     if (user.contraseña !== contraseña) {
       return res.status(400).json({ error: 'Contraseña incorrecta' });
     }
-
+    
+    console.log("Login exitoso de user:" + "[email: " + email + ", contraseña: " + contraseña + "]");
     return res.status(200).json({ message: 'Login exitoso' });
 
   } catch (err) {
