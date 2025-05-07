@@ -159,5 +159,5 @@ app.*.symbols
 
 
 **/Frontend/build/
+**/.env
 **/node_modules/
-

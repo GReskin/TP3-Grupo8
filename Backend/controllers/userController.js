@@ -22,6 +22,7 @@ const getUserById = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     console.log('Datos recibidos en el backend:', req.body);
+
     const newUser = await User.createUser(req.body);
     res.status(201).json(newUser);
   } catch (err) {
