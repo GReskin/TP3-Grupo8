@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/usuario.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UsuarioService {
   static const String baseUrl = 'http://10.0.2.2:3000/api/usuarios'; // usar 10.0.2.2 si usás emulador Android
@@ -35,6 +36,11 @@ class UsuarioService {
 
   if (response.statusCode == 200) {
     print('Login exitoso: ${response.body}');
+    final data = jsonDecode(response.body);
+    final idUsuario = data['id'];
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('idusuario', idUsuario);  
+      print('ID de usuario guardado: $idUsuario');
     return true;
   } else {
     print('Error de login: ${response.body}');

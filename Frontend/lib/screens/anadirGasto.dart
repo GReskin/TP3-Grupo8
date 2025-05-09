@@ -1,173 +1,165 @@
-
+import 'dart:convert';
 import 'package:app_gastos_tp3_grupo8/core/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AnadirGasto extends StatefulWidget {
-  const AnadirGasto({super.key});
-
   @override
-  State<AnadirGasto> createState() => _AnadirGastoState();
+  _AnadirGastoState createState() => _AnadirGastoState();
 }
 
 class _AnadirGastoState extends State<AnadirGasto> {
+  final _descripcionController = TextEditingController();
+  final _montoController = TextEditingController();
+  DateTime _fecha = DateTime.now();
+  int _idcategoria = 1;
+  List<dynamic> _categorias = [];
 
-  final List<String> categorias = ['Supermercado', 'Ropa', 'Juegos', 'Transporte', 'Otros'];
-String? categoriaSeleccionada;
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategorias();
+  }
+
+  Future<void> _fetchCategorias() async {
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:3000/api/categorias'),
+    );
+
+    if (response.statusCode == 200) {
+      setState(() {
+        _categorias = jsonDecode(response.body);
+      });
+    } else {
+      print("Error al cargar categorías");
+    }
+  }
+
+  Future<int?> _getIdUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('idusuario');
+  }
+
+  // Función para crear el gasto
+  Future<void> _crearGasto() async {
+    final idusuario = await _getIdUsuario();
+    if (idusuario == null) {
+      print("Usuario no logueado.");
+      return;
+    }
+    final gastoData = {
+      'descripcion': _descripcionController.text,
+      'monto': double.tryParse(_montoController.text) ?? 0.0,
+      'fecha': _fecha.toIso8601String().substring(0, 10),
+      'idcategoria': _idcategoria,
+      'idusuario': idusuario,
+    };
+
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:3000/api/gastos'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(gastoData),
+    );
+
+    if (response.statusCode == 201) {
+      print("Gasto creado exitosamente");
+      appRouter.push('/home');
+    } else {
+      print("Error al crear el gasto: ${response.body}");
+    }
+  }
+
+  Future<void> _selectFecha(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _fecha,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (picked != null && picked != _fecha) {
+      setState(() {
+        _fecha = picked;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    TextEditingController fechaController = TextEditingController();
-
     return Scaffold(
-      backgroundColor: Colors.grey[200],
       appBar: AppBar(
+        title: Text('Añadir Gasto'),
         backgroundColor: Colors.blueAccent,
-        elevation: 0,
-        title: const Center(
-          child: Text(
-            "Añadir Gasto",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 24,
-              color: Colors.white,
-            ),
-          ),
-        ),
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  spreadRadius: 5,
-                ),
-              ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            TextField(
+              controller: _descripcionController,
+              decoration: InputDecoration(
+                labelText: 'Descripción',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.description),
+              ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  decoration: InputDecoration(
-                    hintText: 'Monto',
-                    labelText: 'Monto',
-                    prefixIcon: const Icon(Icons.monetization_on_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  decoration: InputDecoration(
-                    hintText: 'Descripción',
-                    labelText: 'Descripción',
-                    prefixIcon: const Icon(Icons.description),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                ),
-                const SizedBox(height: 20),
+            SizedBox(height: 16.0),
+            TextField(
+              controller: _montoController,
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Monto',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.monetization_on),
+              ),
+            ),
+            SizedBox(height: 16.0),
 
-                TextFormField(
-                  controller: fechaController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    hintText: 'Seleccionar fecha',
-                    labelText: 'Fecha',
-                    prefixIcon: const Icon(Icons.calendar_today),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                    );
-                    if (pickedDate != null) {
-                      fechaController.text =
-                          "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-                    }
-                  },
-                ),
-
-                const SizedBox(height: 20),
-
-                  // ✅ Campo categoría desplegable
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Categoría',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                  ),
-                  value: categoriaSeleccionada,
-                  items: categorias.map((String categoria) {
-                    return DropdownMenuItem<String>(
-                      value: categoria,
-                      child: Text(categoria),
+            DropdownButtonFormField<int>(
+              value: _idcategoria,
+              onChanged: (int? newValue) {
+                setState(() {
+                  _idcategoria = newValue!;
+                });
+              },
+              items:
+                  _categorias.map<DropdownMenuItem<int>>((categoria) {
+                    return DropdownMenuItem<int>(
+                      value: categoria['id'],
+                      child: Text(categoria['nombre']),
                     );
                   }).toList(),
-                  onChanged: (String? nuevaCategoria) {
-                    setState(() {
-                      categoriaSeleccionada = nuevaCategoria;
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 20),
-                
-                ElevatedButtonTheme(
-                  data: ElevatedButtonThemeData(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 12,
-                      ),
-                      textStyle: TextStyle(fontSize: 18),
-                    ),
-                  ),
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    child: Text('Agregar'),
-                  ),
-                ),
-
-                
-              ],
-              
             ),
-            
-          ),
+
+            SizedBox(height: 16.0),
+            // Selector de fecha
+            GestureDetector(
+              onTap: () => _selectFecha(context),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Fecha',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.calendar_today),
+                ),
+                child: Text(
+                  "${_fecha.toLocal()}".split(' ')[0],
+                  style: TextStyle(fontSize: 16.0),
+                ),
+              ),
+            ),
+            SizedBox(height: 16.0),
+            ElevatedButton(
+              onPressed: _crearGasto,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                padding: EdgeInsets.symmetric(vertical: 15),
+              ),
+              child: Text('Crear Gasto', style: TextStyle(fontSize: 18)),
+            ),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          appRouter.push('/home');
-        },
-        child: Icon(Icons.arrow_back),
-      ),
-
     );
   }
 }

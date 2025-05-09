@@ -12,6 +12,16 @@ const getAllGastos = async () => {
   return res.rows;
 };
 
+const getAllGastosByUser = async (id) => {
+  const db = await dbPromise;
+  const res = await db.query(`
+   SELECT * FROM gastos
+   WHERE idusuario = $1
+  `, [id]);
+  return res.rows;
+}
+
+
 const getGastoById = async (id) => {
   const db = await dbPromise;
   const res = await db.query(`
@@ -63,4 +73,5 @@ module.exports = {
   createGasto,
   updateGasto,
   deleteGasto,
+  getAllGastosByUser
 };

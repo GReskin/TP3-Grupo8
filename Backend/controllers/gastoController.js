@@ -9,6 +9,15 @@ const getAllGastos = async (req, res) => {
   }
 };
 
+const getAllGastosByUser = async(req,res) => {
+  try {
+    const gastos = await Gasto.getAllGastosByUser(req.params.id);
+    res.json(gastos);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener los gastos' });
+  }
+}
+
 const getGastoById = async (req, res) => {
   try {
     const gasto = await Gasto.getGastoById(req.params.id);
@@ -54,4 +63,5 @@ module.exports = {
   createGasto,
   updateGasto,
   deleteGasto,
+  getAllGastosByUser
 };
