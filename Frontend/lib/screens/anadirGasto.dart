@@ -1,8 +1,8 @@
-import 'dart:convert';
-import 'package:app_gastos_tp3_grupo8/core/app_routes.dart';
+// añadirGasto.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import 'package:app_gastos_tp3_grupo8/providers/gastoProvider.dart';
+import 'package:go_router/go_router.dart';
 
 class AnadirGasto extends StatefulWidget {
   @override
@@ -13,76 +13,56 @@ class _AnadirGastoState extends State<AnadirGasto> {
   final _descripcionController = TextEditingController();
   final _montoController = TextEditingController();
   DateTime _fecha = DateTime.now();
-  int _idcategoria = 1;
-  List<dynamic> _categorias = [];
+  int _idcategoria = 1; // Valor predeterminado
+
+  List<dynamic> _categorias = []; // Lista de categorías
 
   @override
   void initState() {
     super.initState();
-    _fetchCategorias();
-  }
-
-  Future<void> _fetchCategorias() async {
-    final response = await http.get(
-      Uri.parse('http://10.0.2.2:3000/api/categorias'),
-    );
-
-    if (response.statusCode == 200) {
+    Provider.of<GastoProvider>(context, listen: false).cargarCategorias().then((
+      _,
+    ) {
       setState(() {
-        _categorias = jsonDecode(response.body);
+        _categorias =
+            Provider.of<GastoProvider>(context, listen: false).categorias;
       });
-    } else {
-      print("Error al cargar categorías");
-    }
+    });
   }
 
-  Future<int?> _getIdUsuario() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('idusuario');
-  }
-
-  // Función para crear el gasto
-  Future<void> _crearGasto() async {
-    final idusuario = await _getIdUsuario();
-    if (idusuario == null) {
-      print("Usuario no logueado.");
-      return;
-    }
-    final gastoData = {
-      'descripcion': _descripcionController.text,
-      'monto': double.tryParse(_montoController.text) ?? 0.0,
-      'fecha': _fecha.toIso8601String().substring(0, 10),
-      'idcategoria': _idcategoria,
-      'idusuario': idusuario,
-    };
-
-    final response = await http.post(
-      Uri.parse('http://10.0.2.2:3000/api/gastos'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(gastoData),
-    );
-
-    if (response.statusCode == 201) {
-      print("Gasto creado exitosamente");
-      appRouter.push('/home');
-    } else {
-      print("Error al crear el gasto: ${response.body}");
-    }
-  }
-
-  Future<void> _selectFecha(BuildContext context) async {
+  void _selectFecha(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _fecha,
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
-
     if (picked != null && picked != _fecha) {
+      Provider.of<GastoProvider>(
+        context,
+        listen: false,
+      ).actualizarFecha(picked);
       setState(() {
         _fecha = picked;
       });
     }
+  }
+
+  void _crearGasto() async {
+    final descripcion = _descripcionController.text;
+    final montoTexto = _montoController.text;
+
+    if (descripcion.isEmpty || montoTexto.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Por favor, complete todos los campos.')),
+      );
+      return;
+    }
+
+    final gastoProvider = Provider.of<GastoProvider>(context, listen: false);
+    await gastoProvider.crearGasto(descripcion, montoTexto);
+
+    // No need for try-catch here, the provider handles errors
   }
 
   @override
@@ -94,70 +74,95 @@ class _AnadirGastoState extends State<AnadirGasto> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            TextField(
-              controller: _descripcionController,
-              decoration: InputDecoration(
-                labelText: 'Descripción',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.description),
-              ),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: _montoController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: 'Monto',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.monetization_on),
-              ),
-            ),
-            SizedBox(height: 16.0),
+        child: Consumer<GastoProvider>(
+          builder: (context, gastoProvider, _) {
+            // Listen for errors and success from the provider
+            if (gastoProvider.gastoError != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(gastoProvider.gastoError!)),
+                );
+                gastoProvider.resetGastoState(); // Clear the error
+              });
+            }
 
-            DropdownButtonFormField<int>(
-              value: _idcategoria,
-              onChanged: (int? newValue) {
-                setState(() {
-                  _idcategoria = newValue!;
-                });
-              },
-              items:
-                  _categorias.map<DropdownMenuItem<int>>((categoria) {
-                    return DropdownMenuItem<int>(
-                      value: categoria['id'],
-                      child: Text(categoria['nombre']),
-                    );
-                  }).toList(),
-            ),
+            if (gastoProvider.gastoCreado) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.go('/home');
+                gastoProvider.resetGastoState(); // Clear the success flag
+              });
+            }
 
-            SizedBox(height: 16.0),
-            // Selector de fecha
-            GestureDetector(
-              onTap: () => _selectFecha(context),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Fecha',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
+            return ListView(
+              children: [
+                TextField(
+                  controller: _descripcionController,
+                  decoration: InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.description),
+                  ),
                 ),
-                child: Text(
-                  "${_fecha.toLocal()}".split(' ')[0],
-                  style: TextStyle(fontSize: 16.0),
+                SizedBox(height: 16.0),
+                TextField(
+                  controller: _montoController,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Monto',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.monetization_on),
+                  ),
                 ),
-              ),
-            ),
-            SizedBox(height: 16.0),
-            ElevatedButton(
-              onPressed: _crearGasto,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                padding: EdgeInsets.symmetric(vertical: 15),
-              ),
-              child: Text('Crear Gasto', style: TextStyle(fontSize: 18)),
-            ),
-          ],
+                SizedBox(height: 16.0),
+                DropdownButtonFormField<int>(
+                  value: gastoProvider.idCategoria,
+                  onChanged: (int? newValue) {
+                    if (newValue != null) {
+                      Provider.of<GastoProvider>(
+                        context,
+                        listen: false,
+                      ).seleccionarCategoria(newValue);
+                      setState(() {
+                        _idcategoria = newValue;
+                      });
+                    }
+                  },
+                  items:
+                      _categorias.map<DropdownMenuItem<int>>((categoria) {
+                        return DropdownMenuItem<int>(
+                          value: categoria['id'],
+                          child: Text(categoria['nombre']),
+                        );
+                      }).toList(),
+                ),
+                SizedBox(height: 16.0),
+                GestureDetector(
+                  onTap: () => _selectFecha(context),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Fecha',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.calendar_today),
+                    ),
+                    child: Text(
+                      "${Provider.of<GastoProvider>(context).fecha.toLocal()}"
+                          .split(' ')[0],
+                      style: TextStyle(fontSize: 16.0),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.0),
+                ElevatedButton(
+                  onPressed: _crearGasto,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding: EdgeInsets.symmetric(vertical: 15),
+                  ),
+                  child: Text('Crear Gasto', style: TextStyle(fontSize: 18)),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
