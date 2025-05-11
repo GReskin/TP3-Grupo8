@@ -1,55 +1,56 @@
-// gastoProvider.dart
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:app_gastos_tp3_grupo8/models/gasto.dart';
 
 class GastoProvider with ChangeNotifier {
+  // Properties
+  List<Gasto> _gastos = [];
   List<dynamic> _categorias = [];
   int _idCategoriaSeleccionada = 1;
   DateTime _fecha = DateTime.now();
-  String? _gastoError;
-  bool _gastoCreado = false;
 
+  String? _gastoError;
+  String? _gastosError;
+
+  bool _gastoCreado = false;
+  bool _isLoadingGastos = false;
+
+  // Getters
+  List<Gasto> get gastos => _gastos;
   List<dynamic> get categorias => _categorias;
   int get idCategoria => _idCategoriaSeleccionada;
   DateTime get fecha => _fecha;
   String? get gastoError => _gastoError;
+  String? get gastosError => _gastosError;
   bool get gastoCreado => _gastoCreado;
+  bool get isLoadingGastos => _isLoadingGastos;
 
-  // Reset the flags after consumption
-  void resetGastoState() {
-    _gastoError = null;
-    _gastoCreado = false;
-  }
+  // Public methods
 
-  // Función para cargar las categorías
   Future<void> cargarCategorias() async {
-    final response = await http.get(
-      Uri.parse('http://10.0.2.2:3000/api/categorias'),
-    );
-
-    if (response.statusCode == 200) {
-      _categorias = jsonDecode(response.body);
-      notifyListeners();
-    } else {
-      print("Error al cargar categorías");
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:3000/api/categorias'),
+      );
+      if (response.statusCode == 200) {
+        _categorias = jsonDecode(response.body);
+      } else {
+        _categorias = [];
+        debugPrint("Error al cargar categorías: ${response.statusCode}");
+      }
+    } catch (e) {
+      _categorias = [];
+      debugPrint("Excepción al cargar categorías: $e");
     }
+    notifyListeners();
   }
 
-  // Función para obtener el id de usuario
-  Future<int?> _getIdUsuario() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('idusuario');
-  }
-
-  // Función para crear un gasto
   Future<void> crearGasto(String descripcion, String montoTexto) async {
     final idusuario = await _getIdUsuario();
     if (idusuario == null) {
-      _gastoError = "Usuario no logueado.";
-      _gastoCreado = false;
-      notifyListeners();
+      _setGastoError("Usuario no logueado.");
       return;
     }
 
@@ -71,28 +72,103 @@ class GastoProvider with ChangeNotifier {
       if (response.statusCode == 201) {
         _gastoCreado = true;
         _gastoError = null;
-        notifyListeners();
       } else {
-        _gastoError = "Error al crear el gasto: ${response.body}";
-        _gastoCreado = false;
-        notifyListeners();
+        _setGastoError("Error al crear el gasto: ${response.body}");
       }
     } catch (e) {
-      _gastoError = "Error de conexión al crear el gasto: $e";
-      _gastoCreado = false;
-      notifyListeners();
+      _setGastoError("Error de conexión al crear el gasto: $e");
     }
+    notifyListeners();
   }
 
-  // Función para actualizar la fecha
+  Future<void> fetchGastos() async {
+    _isLoadingGastos = true;
+    _gastosError = null;
+    notifyListeners();
+
+    final idusuario = await _getIdUsuario();
+    if (idusuario == null) {
+      _setGastosError("ID de usuario no encontrado.");
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:3000/api/gastos/usuarios/$idusuario'),
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        _gastos = data.map((json) => Gasto.fromJson(json)).toList();
+      } else {
+        _setGastosError("Error al cargar los gastos: ${response.body}");
+      }
+    } catch (e) {
+      _setGastosError("Error de conexión al cargar los gastos: $e");
+    }
+
+    _isLoadingGastos = false;
+    notifyListeners();
+  }
+
   void actualizarFecha(DateTime nuevaFecha) {
     _fecha = nuevaFecha;
     notifyListeners();
   }
 
-  // Función para seleccionar categoría
   void seleccionarCategoria(int id) {
     _idCategoriaSeleccionada = id;
     notifyListeners();
+  }
+
+  void resetGastoState() {
+    _gastoCreado = false;
+    _gastoError = null;
+    notifyListeners();
+  }
+
+  // Helpers
+  Future<int?> _getIdUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('idusuario');
+  }
+
+  void _setGastoError(String message) {
+    _gastoError = message;
+    _gastoCreado = false;
+  }
+
+  void _setGastosError(String message) {
+    _gastosError = message;
+    _isLoadingGastos = false;
+    notifyListeners();
+  }
+
+  // Category UI helpers
+  final Map<int, String> categoriasMap = {
+    1: 'Alimentos',
+    2: 'Transporte',
+    3: 'Entretenimiento',
+    4: 'Salud',
+    5: 'Educacion',
+  };
+
+  String getCategoriaName(int id) => categoriasMap[id] ?? 'Desconocido';
+
+  Color colorForCategory(String category) {
+    switch (category) {
+      case "Alimentos":
+        return Colors.green;
+      case "Transporte":
+        return Colors.blue;
+      case "Entretenimiento":
+        return Colors.purple;
+      case "Salud":
+        return Colors.orange;
+      case "Educacion":
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
   }
 }
