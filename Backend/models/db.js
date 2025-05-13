@@ -63,6 +63,22 @@ async function createTablesIfNotExist(pool) {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS grupos (
+      id SERIAL PRIMARY KEY,
+      nombre VARCHAR(100) NOT NULL,
+      creador_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS usuario_grupos (
+      grupo_id INTEGER NOT NULL REFERENCES grupos(id) ON DELETE CASCADE,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      PRIMARY KEY (grupo_id, usuario_id)
+    );
+  `);
+
   console.log('✅ Tablas creadas o ya existentes');
 }
 
