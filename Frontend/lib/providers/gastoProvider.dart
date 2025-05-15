@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app_gastos_tp3_grupo8/models/gasto.dart';
+import 'dart:math';
 
 class GastoProvider with ChangeNotifier {
-  // Properties
+  // Propiedades privadas
   List<Gasto> _gastos = [];
   List<dynamic> _categorias = [];
   int _idCategoriaSeleccionada = 1;
@@ -17,7 +18,7 @@ class GastoProvider with ChangeNotifier {
   bool _gastoCreado = false;
   bool _isLoadingGastos = false;
 
-  // Getters
+  // Getters públicos
   List<Gasto> get gastos => _gastos;
   List<dynamic> get categorias => _categorias;
   int get idCategoria => _idCategoriaSeleccionada;
@@ -27,8 +28,13 @@ class GastoProvider with ChangeNotifier {
   bool get gastoCreado => _gastoCreado;
   bool get isLoadingGastos => _isLoadingGastos;
 
-  // Public methods
+  // Obtener el ID del usuario desde SharedPreferences
+  Future<int?> _getIdUsuario() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('idusuario');
+  }
 
+  // Cargar categorías desde la API
   Future<void> cargarCategorias() async {
     try {
       final response = await http.get(
@@ -47,10 +53,12 @@ class GastoProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Crear un nuevo gasto
   Future<void> crearGasto(String descripcion, String montoTexto) async {
     final idusuario = await _getIdUsuario();
     if (idusuario == null) {
       _setGastoError("Usuario no logueado.");
+      notifyListeners();
       return;
     }
 
@@ -81,6 +89,7 @@ class GastoProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Cargar los gastos del usuario
   Future<void> fetchGastos() async {
     _isLoadingGastos = true;
     _gastosError = null;
@@ -111,6 +120,7 @@ class GastoProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Métodos para UI
   void actualizarFecha(DateTime nuevaFecha) {
     _fecha = nuevaFecha;
     notifyListeners();
@@ -127,12 +137,7 @@ class GastoProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Helpers
-  Future<int?> _getIdUsuario() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('idusuario');
-  }
-
+  // Métodos auxiliares de error
   void _setGastoError(String message) {
     _gastoError = message;
     _gastoCreado = false;
@@ -144,31 +149,26 @@ class GastoProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Category UI helpers
-  final Map<int, String> categoriasMap = {
-    1: 'Alimentos',
-    2: 'Transporte',
-    3: 'Entretenimiento',
-    4: 'Salud',
-    5: 'Educacion',
-  };
+  // Obtener nombre de categoría por ID
+  String getCategoriaName(int id) {
+    final categoria = _categorias.firstWhere(
+      (cat) => cat['id'] == id,
+      orElse: () => {'nombre': 'Desconocido'},
+    );
+    return categoria['nombre'] ?? 'Desconocido';
+  }
 
-  String getCategoriaName(int id) => categoriasMap[id] ?? 'Desconocido';
+  // Devolver un color asociado a una categoría
 
   Color colorForCategory(String category) {
-    switch (category) {
-      case "Alimentos":
-        return Colors.green;
-      case "Transporte":
-        return Colors.blue;
-      case "Entretenimiento":
-        return Colors.purple;
-      case "Salud":
-        return Colors.orange;
-      case "Educacion":
-        return Colors.grey;
-      default:
-        return Colors.grey;
-    }
+    final hash = category.hashCode;
+    final random = Random(hash);
+
+    return Color.fromARGB(
+      255,
+      100 + random.nextInt(156), // avoid too dark colors
+      100 + random.nextInt(156),
+      100 + random.nextInt(156),
+    );
   }
 }

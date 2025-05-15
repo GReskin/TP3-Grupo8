@@ -15,7 +15,9 @@ class _GastosState extends State<Gastos> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<GastoProvider>(context, listen: false).fetchGastos();
+      final gastoProvider = Provider.of<GastoProvider>(context, listen: false);
+      gastoProvider.cargarCategorias(); // 👈 Necesario para mapear los nombres
+      gastoProvider.fetchGastos();
     });
   }
 
