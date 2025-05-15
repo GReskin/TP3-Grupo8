@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  provider: ^6.1.1 # o la versión más reciente
   fl_chart: ^0.64.0
   http: ^1.4.0
   shared_preferences: ^2.0.15
