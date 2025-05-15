@@ -20,6 +20,7 @@ app.use((req, res, next) => {
 app.use('/api/usuarios', require('./routes/userRoutes'));
 app.use('/api/categorias', require('./routes/categoriaRoutes'));
 app.use('/api/gastos', require('./routes/gastoRoutes'));
+app.use('/api/grupos', require('./routes/grupoRoutes'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
