@@ -1,4 +1,4 @@
-const dbPromise = require('./db');
+const dbPromise = require("./db");
 
 const Grupo = {
   createGroup: async ({ nombre, creador_id }) => {
@@ -54,6 +54,11 @@ const Grupo = {
     );
     return rows[0];
   },
+  getAllGroups: async () => {
+    const db = await dbPromise;
+    const { rows } = await db.query(`SELECT * FROM grupos`);
+    return rows;
+  },
 
   deleteGroup: async (id) => {
     const db = await dbPromise;
@@ -62,7 +67,7 @@ const Grupo = {
       [id]
     );
     return rows[0];
-  }
+  },
 };
 
 module.exports = Grupo;

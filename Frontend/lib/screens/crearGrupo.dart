@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:app_gastos_tp3_grupo8/providers/grupoProvider.dart';
 
 class CrearGrupo extends StatefulWidget {
   @override
@@ -6,105 +8,85 @@ class CrearGrupo extends StatefulWidget {
 }
 
 class _CrearGrupoState extends State<CrearGrupo> {
-  final TextEditingController _nombreGrupoController = TextEditingController();
-  final TextEditingController _usuarioController = TextEditingController();
+  late GrupoProvider grupoProvider;
+  Map<String, dynamic>?
+  usuarioSeleccionado; // Variable para el usuario seleccionado
 
-  final List<String> usuariosDisponibles = [
-    'juan123',
-    'maria456',
-    'luis789',
-    'ana321',
-    'carlos987',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      grupoProvider = Provider.of<GrupoProvider>(context, listen: false);
+      grupoProvider.fetchCategorias();
+      grupoProvider.fetchUsuarios(); // Carga usuarios de la DB
+    });
+  }
 
-  List<String> usuariosGrupo = [];
-
-  Future<void> _confirmarAgregarUsuario(String usuario) async {
+  Future<void> _confirmarAgregarUsuario(
+    BuildContext context,
+    GrupoProvider grupoProvider,
+    Map<String, dynamic> usuario,
+  ) async {
     final shouldAdd = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Agregar usuario'),
-        content: Text('¿Agregar "$usuario" al grupo?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Agregar')),
-        ],
-      ),
+      builder:
+          (context) => AlertDialog(
+            title: Text('Agregar usuario'),
+            content: Text('¿Agregar "${usuario['usuario']}" al grupo?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Agregar'),
+              ),
+            ],
+          ),
     );
 
     if (shouldAdd == true) {
-      _agregarUsuario(usuario);
+      grupoProvider.agregarUsuario(context, usuario);
     }
   }
 
-  void _agregarUsuario(String usuario) {
-    if (!usuariosDisponibles.contains(usuario)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Usuario "$usuario" no existe')),
-      );
-      return;
-    }
-
-    if (usuariosGrupo.contains(usuario)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Usuario "$usuario" ya está en el grupo')),
-      );
-      return;
-    }
-
-    setState(() {
-      usuariosGrupo.add(usuario);
-      _usuarioController.clear();
-    });
-  }
-
-  Future<void> _confirmarEliminarUsuario(String usuario) async {
+  Future<void> _confirmarEliminarUsuario(
+    BuildContext context,
+    GrupoProvider grupoProvider,
+    String usuario,
+  ) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Eliminar integrante'),
-        content: Text('¿Eliminar a "$usuario" del grupo?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: Text('Eliminar')),
-        ],
-      ),
+      builder:
+          (context) => AlertDialog(
+            title: Text('Eliminar integrante'),
+            content: Text('¿Eliminar a "$usuario" del grupo?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text('Eliminar'),
+              ),
+            ],
+          ),
     );
 
     if (shouldDelete == true) {
-      setState(() {
-        usuariosGrupo.remove(usuario);
-      });
+      grupoProvider.eliminarUsuario(usuario);
     }
-  }
-
-  void _crearGrupo() {
-    final nombreGrupo = _nombreGrupoController.text.trim();
-
-    if (nombreGrupo.isEmpty || usuariosGrupo.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Completa el nombre del grupo y agrega al menos un usuario')),
-      );
-      return;
-    }
-
-    print('Grupo creado: $nombreGrupo');
-    print('Usuarios: $usuariosGrupo');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Grupo "$nombreGrupo" creado con éxito')),
-    );
-
-    setState(() {
-      _nombreGrupoController.clear();
-      _usuarioController.clear();
-      usuariosGrupo.clear();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Usamos listen: true para que se actualice UI con cambios en provider
+    grupoProvider = Provider.of<GrupoProvider>(context);
+
     final theme = Theme.of(context);
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -118,7 +100,7 @@ class _CrearGrupoState extends State<CrearGrupo> {
         child: Column(
           children: [
             _buildInputField(
-              controller: _nombreGrupoController,
+              controller: grupoProvider.nombreGrupoController,
               label: 'Nombre del Grupo',
               icon: Icons.group,
             ),
@@ -126,75 +108,110 @@ class _CrearGrupoState extends State<CrearGrupo> {
             Row(
               children: [
                 Expanded(
-                  child: _buildInputField(
-                    controller: _usuarioController,
-                    label: 'Nombre de Usuario',
-                    icon: Icons.person_add_alt_1,
+                  child: DropdownButtonFormField<Map<String, dynamic>>(
+                    isExpanded: true,
+                    value: usuarioSeleccionado,
+                    items:
+                        grupoProvider.usuariosDisponibles.map((usuario) {
+                          return DropdownMenuItem<Map<String, dynamic>>(
+                            value: usuario,
+                            child: Text(usuario['usuario'] ?? 'Sin nombre'),
+                          );
+                        }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        usuarioSeleccionado = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Seleccionar usuario',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: Icon(Icons.person),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 FloatingActionButton(
-                  onPressed: () {
-                    final usuario = _usuarioController.text.trim();
-                    if (usuario.isNotEmpty) {
-                      _confirmarAgregarUsuario(usuario);
-                    }
-                  },
+                  onPressed:
+                      usuarioSeleccionado != null
+                          ? () => _confirmarAgregarUsuario(
+                            context,
+                            grupoProvider,
+                            usuarioSeleccionado!,
+                          )
+                          : null,
                   backgroundColor: Colors.blueAccent,
                   mini: true,
                   child: Icon(Icons.add),
                 ),
               ],
             ),
+
             const SizedBox(height: 24),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Integrantes añadidos',
-                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: usuariosGrupo.isEmpty
-                  ? Center(child: Text('No hay usuarios añadidos.'))
-                  : ListView.builder(
-                      itemCount: usuariosGrupo.length,
-                      itemBuilder: (context, index) {
-                        final usuario = usuariosGrupo[index];
-                        return Card(
-                          elevation: 2,
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: Colors.blueAccent,
-                              child: Text(
-                                usuario[0].toUpperCase(),
-                                style: TextStyle(color: Colors.white),
+              child:
+                  grupoProvider.usuariosGrupo.isEmpty
+                      ? Center(child: Text('No hay usuarios añadidos.'))
+                      : ListView.builder(
+                        itemCount: grupoProvider.usuariosGrupo.length,
+                        itemBuilder: (context, index) {
+                          final usuario = grupoProvider.usuariosGrupo[index];
+                          return Card(
+                            elevation: 2,
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.blueAccent,
+                                child: Text(
+                                  (usuario['usuario']?.toString() ?? '?')[0]
+                                      .toUpperCase(),
+
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              title: Text(usuario['usuario']),
+                              trailing: IconButton(
+                                icon: Icon(Icons.delete, color: Colors.red),
+                                onPressed:
+                                    () => _confirmarEliminarUsuario(
+                                      context,
+                                      grupoProvider,
+                                      usuario['usuario'],
+                                    ),
                               ),
                             ),
-                            title: Text(usuario),
-                            trailing: IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _confirmarEliminarUsuario(usuario),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      ),
             ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _crearGrupo,
+                onPressed: () => grupoProvider.crearGrupo(context),
                 icon: Icon(Icons.check),
                 label: Text('Crear Grupo'),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 14),
                   backgroundColor: Colors.blueAccent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   textStyle: TextStyle(fontSize: 16),
                 ),
               ),
@@ -217,7 +234,9 @@ class _CrearGrupoState extends State<CrearGrupo> {
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: const Color.fromARGB(255, 58, 137, 183)),
+          borderSide: BorderSide(
+            color: const Color.fromARGB(255, 58, 137, 183),
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
         fillColor: Colors.white,
