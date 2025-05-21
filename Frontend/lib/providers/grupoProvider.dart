@@ -115,6 +115,12 @@ class GrupoProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void eliminarUsuarioPorId(int idUsuario) {
+  usuariosGrupo.removeWhere((u) => u['id'] == idUsuario);
+  notifyListeners();
+}
+
+
   Future<void> crearGrupo(BuildContext context) async {
     final nombreGrupo = nombreGrupoController.text.trim();
     final creadorId = await obtenerCreadorId();

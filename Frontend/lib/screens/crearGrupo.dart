@@ -51,39 +51,41 @@ class _CrearGrupoState extends State<CrearGrupo> {
     }
   }
 
-  Future<void> _confirmarEliminarUsuario(
-    BuildContext context,
-    GrupoProvider grupoProvider,
-    String usuario,
-  ) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('Eliminar integrante'),
-            content: Text('¿Eliminar a "$usuario" del grupo?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text('Eliminar'),
-              ),
-            ],
-          ),
-    );
+ Future<void> _confirmarEliminarUsuario(
+  BuildContext context,
+  GrupoProvider grupoProvider,
+  Map<String, dynamic> usuario,
+) async {
+  final shouldDelete = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Eliminar integrante'),
+      content: Text('¿Eliminar a "${usuario['usuario']}" del grupo?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
 
-    if (shouldDelete == true) {
-      grupoProvider.eliminarUsuario(usuario);
-    }
+  if (shouldDelete == true) {
+    grupoProvider.eliminarUsuarioPorId(usuario['id']);
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
     // Usamos listen: true para que se actualice UI con cambios en provider
     grupoProvider = Provider.of<GrupoProvider>(context);
+
+
 
     final theme = Theme.of(context);
 
@@ -106,48 +108,59 @@ class _CrearGrupoState extends State<CrearGrupo> {
             ),
             const SizedBox(height: 16),
             Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<Map<String, dynamic>>(
-                    isExpanded: true,
-                    value: usuarioSeleccionado,
-                    items:
-                        grupoProvider.usuariosDisponibles.map((usuario) {
-                          return DropdownMenuItem<Map<String, dynamic>>(
-                            value: usuario,
-                            child: Text(usuario['usuario'] ?? 'Sin nombre'),
-                          );
-                        }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        usuarioSeleccionado = value;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      labelText: 'Seleccionar usuario',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FloatingActionButton(
-                  onPressed:
-                      usuarioSeleccionado != null
-                          ? () => _confirmarAgregarUsuario(
-                            context,
-                            grupoProvider,
-                            usuarioSeleccionado!,
-                          )
-                          : null,
-                  backgroundColor: Colors.blueAccent,
-                  mini: true,
-                  child: Icon(Icons.add),
-                ),
-              ],
-            ),
+  children: [
+    Expanded(
+      child: TextFormField(
+        controller: grupoProvider.usuarioController,
+        decoration: InputDecoration(
+          labelText: 'Nombre del usuario',
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          prefixIcon: Icon(Icons.person),
+        ),
+      ),
+    ),
+    const SizedBox(width: 8),
+    FloatingActionButton(
+      onPressed: () {
+        final inputNombre = grupoProvider.usuarioController.text.trim();
+
+if (inputNombre.isEmpty) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Escribe un nombre de usuario')),
+  );
+  return;
+}
+
+final usuarioEncontrado = grupoProvider.usuariosDisponibles.firstWhere(
+  (u) =>
+      u['usuario'] != null &&
+      u['usuario'].toString().toLowerCase() == inputNombre.toLowerCase(),
+  orElse: () => <String, dynamic>{},
+);
+
+if (usuarioEncontrado.isNotEmpty) {
+  _confirmarAgregarUsuario(
+    context,
+    grupoProvider,
+    usuarioEncontrado,
+  );
+  grupoProvider.usuarioController.clear();
+} else {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Usuario no encontrado')),
+  );
+}
+
+      },
+      backgroundColor: Colors.blueAccent,
+      mini: true,
+      child: Icon(Icons.add),
+    ),
+  ],
+),
+
 
             const SizedBox(height: 24),
             Align(
@@ -187,12 +200,12 @@ class _CrearGrupoState extends State<CrearGrupo> {
                               title: Text(usuario['usuario']),
                               trailing: IconButton(
                                 icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed:
-                                    () => _confirmarEliminarUsuario(
-                                      context,
-                                      grupoProvider,
-                                      usuario['usuario'],
-                                    ),
+                                onPressed: () => _confirmarEliminarUsuario(
+                                context,
+                                grupoProvider,
+                                usuario,
+                              ),
+
                               ),
                             ),
                           );
