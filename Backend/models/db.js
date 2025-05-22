@@ -79,6 +79,17 @@ async function createTablesIfNotExist(pool) {
     );
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS gastos_grupo (
+      id SERIAL PRIMARY KEY,
+      descripcion TEXT NOT NULL,
+      monto NUMERIC(10, 2) NOT NULL,
+      fecha DATE NOT NULL,
+      idcategoria INTEGER REFERENCES categorias_gasto(id),
+      idgrupo INTEGER REFERENCES grupos(id)
+    );
+  `);
+
   console.log('✅ Tablas creadas o ya existentes');
 }
 

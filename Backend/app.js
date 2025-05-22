@@ -21,6 +21,7 @@ app.use('/api/usuarios', require('./routes/userRoutes'));
 app.use('/api/categorias', require('./routes/categoriaRoutes'));
 app.use('/api/gastos', require('./routes/gastoRoutes'));
 app.use('/api/grupos', require('./routes/grupoRoutes'));
+app.use('/api/gastos_grupo', require('./routes/gastosGrupoRoutes'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
