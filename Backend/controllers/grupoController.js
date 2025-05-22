@@ -1,4 +1,4 @@
-const Grupo = require('../models/grupoModel');
+const Grupo = require("../models/grupoModel");
 
 const createGroup = async (req, res) => {
   try {
@@ -59,6 +59,15 @@ const deleteGroup = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+const getAllGroups = async (req, res) => {
+  try {
+    const grupos = await Grupo.getAllGroups();
+    res.json(grupos);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error al obtener los grupos" });
+  }
+};
 
 module.exports = {
   createGroup,
@@ -66,5 +75,6 @@ module.exports = {
   getMyGroups,
   getMembers,
   removeUser,
-  deleteGroup
+  deleteGroup,
+  getAllGroups,
 };

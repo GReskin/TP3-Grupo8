@@ -1,6 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:app_gastos_tp3_grupo8/providers/grupoProvider.dart';
 
 class CrearGastoGrupo extends StatefulWidget {
   @override
@@ -12,56 +12,53 @@ class _CrearGastoGrupoState extends State<CrearGastoGrupo> {
   final _montoController = TextEditingController();
   DateTime _fecha = DateTime.now();
 
-  int _idcategoria = 1;
-  int _idgrupo = 1;
-
-  List<dynamic> _categorias = [];
-  List<Map<String, dynamic>> _grupos = [
-    {'id': 1, 'nombre': 'Viaje a Bariloche'},
-    {'id': 2, 'nombre': 'Cumpleaños de Ana'},
-    {'id': 3, 'nombre': 'Proyecto Universidad'},
-  ];
+  int? _idcategoria;
+  int? _idgrupo;
 
   @override
   void initState() {
     super.initState();
-    _fetchCategorias();
-  }
-
-  Future<void> _fetchCategorias() async {
-    final response = await http.get(
-      Uri.parse('http://10.0.2.2:3000/api/categorias'),
-    );
-
-    if (response.statusCode == 200) {
-      setState(() {
-        _categorias = jsonDecode(response.body);
+    Future.microtask(() {
+      final provider = Provider.of<GrupoProvider>(context, listen: false);
+      provider.fetchCategorias();
+      provider.fetchGrupos().then((_) {
+        // Inicializamos el grupo y categoría si están vacíos
+        if (provider.grupos.isNotEmpty && _idgrupo == null) {
+          setState(() {
+            _idgrupo = provider.grupos[0]['id'];
+          });
+        }
+        if (provider.categorias.isNotEmpty && _idcategoria == null) {
+          setState(() {
+            _idcategoria = provider.categorias[0]['id'];
+          });
+        }
       });
-    } else {
-      print("Error al cargar categorías");
-    }
+    });
   }
 
   Future<void> _crearGastoGrupo() async {
-    final gastoData = {
-      'descripcion': _descripcionController.text,
-      'monto': double.tryParse(_montoController.text) ?? 0.0,
-      'fecha': _fecha.toIso8601String().substring(0, 10),
-      'idcategoria': _idcategoria,
-      'idgrupo': _idgrupo,
-    };
+    final provider = Provider.of<GrupoProvider>(context, listen: false);
 
-    final response = await http.post(
-      Uri.parse('http://10.0.2.2:3000/api/gastos-grupo'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(gastoData),
+    if (_idgrupo == null || _idcategoria == null) {
+      // No hay grupo o categoría seleccionada
+      print("Debe seleccionar grupo y categoría");
+      return;
+    }
+
+    final success = await provider.crearGastoGrupo(
+      descripcion: _descripcionController.text,
+      monto: double.tryParse(_montoController.text) ?? 0.0,
+      fecha: _fecha,
+      idcategoria: _idcategoria!,
+      idgrupo: _idgrupo!,
     );
 
-    if (response.statusCode == 201) {
+    if (success) {
       print("Gasto de grupo creado exitosamente");
       Navigator.pop(context);
     } else {
-      print("Error al crear el gasto: ${response.body}");
+      print("Error al crear el gasto");
     }
   }
 
@@ -89,100 +86,148 @@ class _CrearGastoGrupoState extends State<CrearGastoGrupo> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            TextField(
-              controller: _descripcionController,
-              decoration: InputDecoration(
-                labelText: 'Descripción',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.description),
-              ),
-            ),
-            SizedBox(height: 16.0),
-            TextField(
-              controller: _montoController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: 'Monto',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.monetization_on),
-              ),
-            ),
-            SizedBox(height: 16.0),
+        child: Consumer<GrupoProvider>(
+          builder: (context, provider, child) {
+            final grupos = provider.grupos;
+            final categorias = provider.categorias;
 
-            // Grupo selector
-            DropdownButtonFormField<int>(
-              value: _idgrupo,
-              decoration: InputDecoration(
-                labelText: 'Grupo',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.group),
-              ),
-              onChanged: (int? newValue) {
+            // Validar que el _idgrupo esté en la lista de grupos
+            if (_idgrupo != null && !grupos.any((g) => g['id'] == _idgrupo)) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
                 setState(() {
-                  _idgrupo = newValue!;
+                  _idgrupo = null;
                 });
-              },
-              items: _grupos.map((grupo) {
-                return DropdownMenuItem<int>(
-                  value: grupo['id'],
-                  child: Text(grupo['nombre']),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 16.0),
+              });
+            }
 
-            // Categoría selector
-            DropdownButtonFormField<int>(
-              value: _idcategoria,
-              decoration: InputDecoration(
-                labelText: 'Categoría',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category),
-              ),
-              onChanged: (int? newValue) {
+            // Validar que el _idcategoria esté en la lista de categorias
+            if (_idcategoria != null &&
+                !categorias.any((c) => c['id'] == _idcategoria)) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
                 setState(() {
-                  _idcategoria = newValue!;
+                  _idcategoria = null;
                 });
-              },
-              items: _categorias.map<DropdownMenuItem<int>>((categoria) {
-                return DropdownMenuItem<int>(
-                  value: categoria['id'],
-                  child: Text(categoria['nombre']),
-                );
-              }).toList(),
-            ),
-            SizedBox(height: 16.0),
+              });
+            }
 
-            // Fecha selector
-            GestureDetector(
-              onTap: () => _selectFecha(context),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'Fecha',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
+            return ListView(
+              children: [
+                TextField(
+                  controller: _descripcionController,
+                  decoration: InputDecoration(
+                    labelText: 'Descripción',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.description),
+                  ),
                 ),
-                child: Text(
-                  "${_fecha.toLocal()}".split(' ')[0],
-                  style: TextStyle(fontSize: 16.0),
+                SizedBox(height: 16.0),
+                TextField(
+                  controller: _montoController,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Monto',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.monetization_on),
+                  ),
                 ),
-              ),
-            ),
-            SizedBox(height: 16.0),
+                SizedBox(height: 16.0),
 
-            ElevatedButton.icon(
-              onPressed: _crearGastoGrupo,
-              icon: Icon(Icons.add),
-              label: Text('Crear Gasto'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                padding: EdgeInsets.symmetric(vertical: 15),
-                textStyle: TextStyle(fontSize: 18),
-              ),
-            ),
-          ],
+                // Selector de grupo (usando provider.grupos)
+                DropdownButtonFormField<int>(
+                  value: _idgrupo,
+                  decoration: InputDecoration(
+                    labelText: 'Grupo',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.group),
+                  ),
+                  onChanged: (int? newValue) {
+                    setState(() {
+                      _idgrupo = newValue;
+                    });
+                  },
+                  hint: Text(
+                    grupos.isEmpty
+                        ? 'No hay grupos disponibles'
+                        : 'Seleccione un grupo',
+                  ),
+
+                  items:
+                      grupos.isNotEmpty
+                          ? grupos.map<DropdownMenuItem<int>>((grupo) {
+                            return DropdownMenuItem<int>(
+                              value: grupo['id'],
+                              child: Text(grupo['nombre']),
+                            );
+                          }).toList()
+                          : [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text('No hay grupos disponibles'),
+                            ),
+                          ],
+                ),
+                SizedBox(height: 16.0),
+
+                // Selector de categoría desde el provider
+                DropdownButtonFormField<int>(
+                  value: _idcategoria,
+                  decoration: InputDecoration(
+                    labelText: 'Categoría',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.category),
+                  ),
+                  onChanged: (int? newValue) {
+                    setState(() {
+                      _idcategoria = newValue;
+                    });
+                  },
+                  items:
+                      categorias.isNotEmpty
+                          ? categorias.map<DropdownMenuItem<int>>((categoria) {
+                            return DropdownMenuItem<int>(
+                              value: categoria['id'],
+                              child: Text(categoria['nombre']),
+                            );
+                          }).toList()
+                          : [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text('No hay categorías disponibles'),
+                            ),
+                          ],
+                ),
+                SizedBox(height: 16.0),
+
+                // Selector de fecha
+                GestureDetector(
+                  onTap: () => _selectFecha(context),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Fecha',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.calendar_today),
+                    ),
+                    child: Text(
+                      "${_fecha.toLocal()}".split(' ')[0],
+                      style: TextStyle(fontSize: 16.0),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 16.0),
+
+                ElevatedButton.icon(
+                  onPressed: _crearGastoGrupo,
+                  icon: Icon(Icons.add),
+                  label: Text('Crear Gasto'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding: EdgeInsets.symmetric(vertical: 15),
+                    textStyle: TextStyle(fontSize: 18),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
