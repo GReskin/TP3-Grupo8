@@ -3,7 +3,7 @@ const router = express.Router();
 const gc = require("../controllers/grupoController");
 
 router.get("/", gc.getAllGroups);
-router.post("/", gc.createGroup);
+router.post("/", gc.createGroupV2);
 router.post("/agregarUsuario", gc.addUser);
 router.get("/usuarios/:usuario_id", gc.getMyGroups);
 router.get("/:grupo_id/usuarios", gc.getMembers);

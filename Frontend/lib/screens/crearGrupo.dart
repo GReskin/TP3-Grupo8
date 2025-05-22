@@ -22,6 +22,22 @@ class _CrearGrupoState extends State<CrearGrupo> {
     });
   }
 
+void _validarYCrearGrupo() {
+  if (grupoProvider.nombreGrupoController.text.trim().isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('El nombre del grupo no puede estar vacío')),
+    );
+    return;
+  }
+  if (grupoProvider.usuariosGrupo.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Debe agregar al menos un usuario al grupo')),
+    );
+    return;
+  }
+  grupoProvider.crearGrupo(context);
+}
+
   Future<void> _confirmarAgregarUsuario(
     BuildContext context,
     GrupoProvider grupoProvider,
@@ -216,7 +232,7 @@ if (usuarioEncontrado.isNotEmpty) {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => grupoProvider.crearGrupo(context),
+                onPressed: () => _validarYCrearGrupo(),
                 icon: Icon(Icons.check),
                 label: Text('Crear Grupo'),
                 style: ElevatedButton.styleFrom(

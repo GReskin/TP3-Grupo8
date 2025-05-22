@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_gastos_tp3_grupo8/providers/grupoProvider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CrearGastoGrupo extends StatefulWidget {
   @override
@@ -16,51 +17,53 @@ class _CrearGastoGrupoState extends State<CrearGastoGrupo> {
   int? _idgrupo;
 
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      final provider = Provider.of<GrupoProvider>(context, listen: false);
-      provider.fetchCategorias();
-      provider.fetchGrupos().then((_) {
-        // Inicializamos el grupo y categoría si están vacíos
-        if (provider.grupos.isNotEmpty && _idgrupo == null) {
-          setState(() {
-            _idgrupo = provider.grupos[0]['id'];
-          });
-        }
-        if (provider.categorias.isNotEmpty && _idcategoria == null) {
-          setState(() {
-            _idcategoria = provider.categorias[0]['id'];
-          });
-        }
-      });
-    });
-  }
-
-  Future<void> _crearGastoGrupo() async {
+ void initState() {
+  super.initState();
+  Future.microtask(() async {
     final provider = Provider.of<GrupoProvider>(context, listen: false);
+    final prefs = await SharedPreferences.getInstance();
+final userId = prefs.getInt('idusuario') ?? 1; // fallback a 1 si no existe
 
-    if (_idgrupo == null || _idcategoria == null) {
-      // No hay grupo o categoría seleccionada
-      print("Debe seleccionar grupo y categoría");
-      return;
+    provider.fetchCategorias();
+    await provider.fetchGrupos(userId);
+
+    if (provider.grupos.isNotEmpty && _idgrupo == null) {
+      setState(() {
+        _idgrupo = provider.grupos[0]['id'];
+      });
     }
 
-    final success = await provider.crearGastoGrupo(
-      descripcion: _descripcionController.text,
-      monto: double.tryParse(_montoController.text) ?? 0.0,
-      fecha: _fecha,
-      idcategoria: _idcategoria!,
-      idgrupo: _idgrupo!,
-    );
-
-    if (success) {
-      print("Gasto de grupo creado exitosamente");
-      Navigator.pop(context);
-    } else {
-      print("Error al crear el gasto");
+    if (provider.categorias.isNotEmpty && _idcategoria == null) {
+      setState(() {
+        _idcategoria = provider.categorias[0]['id'];
+      });
     }
+  });
+}
+  Future<void> _crearGastoGrupo() async {
+  final provider = Provider.of<GrupoProvider>(context, listen: false);
+
+  if (_idgrupo == null || _idcategoria == null) {
+    print("⚠️ Debe seleccionar grupo y categoría");
+    return;
   }
+
+  final success = await provider.crearGastoGrupo(
+    descripcion: _descripcionController.text,
+    monto: double.tryParse(_montoController.text) ?? 0.0,
+    fecha: _fecha,
+    idcategoria: _idcategoria!,
+    idgrupo: _idgrupo!,
+  );
+
+  if (success) {
+    print("✅ Gasto de grupo creado exitosamente");
+    Navigator.pop(context);
+  } else {
+    print("❌ Error al crear el gasto");
+  }
+}
+
 
   Future<void> _selectFecha(BuildContext context) async {
     final DateTime? picked = await showDatePicker(

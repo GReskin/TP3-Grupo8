@@ -9,6 +9,16 @@ const createGroup = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+const createGroupV2 = async (req, res) => {
+  try {
+    const { nombre, creador_id, usuarios } = req.body; // Recibir usuarios
+    const group = await Grupo.createGroup({ nombre, creador_id, usuarios }); // Pasar usuarios al modelo
+    res.status(201).json(group);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
 const addUser = async (req, res) => {
   try {
@@ -77,4 +87,5 @@ module.exports = {
   removeUser,
   deleteGroup,
   getAllGroups,
+  createGroupV2
 };

@@ -18,14 +18,22 @@ const getGastosByGrupo = async (req, res) => {
   }
 };
 
+
+
+
+
 const createGastoGrupo = async (req, res) => {
   try {
+    console.log('Datos recibidos para gasto grupo:', req.body);
     const nuevoGasto = await GastoGrupo.createGastoGrupo(req.body);
+
     res.status(201).json(nuevoGasto);
-  } catch (err) {
-    res.status(500).json({ error: 'Error al crear el gasto de grupo' });
+  } catch (error) {
+    console.error('Error al crear gasto de grupo:', error.message);
+    res.status(500).json({ error: 'Error al crear gasto de grupo' });
   }
 };
+
 
 const deleteGastoGrupo = async (req, res) => {
   try {
