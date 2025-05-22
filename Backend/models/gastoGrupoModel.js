@@ -1,4 +1,4 @@
-const db = require('../db');
+const db = require('./db');
 
 const getAllGastosGrupo = async () => {
   const res = await (await db).query('SELECT * FROM gastos_grupo');
