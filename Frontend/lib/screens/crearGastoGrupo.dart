@@ -83,10 +83,7 @@ final userId = prefs.getInt('idusuario') ?? 1; // fallback a 1 si no existe
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Añadir Gasto al Grupo'),
-        backgroundColor: Colors.blueAccent,
-      ),
+      
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Consumer<GrupoProvider>(

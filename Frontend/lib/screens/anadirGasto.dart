@@ -68,10 +68,7 @@ class _AnadirGastoState extends State<AnadirGasto> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Añadir Gasto'),
-        backgroundColor: Colors.blueAccent,
-      ),
+      
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Consumer<GastoProvider>(

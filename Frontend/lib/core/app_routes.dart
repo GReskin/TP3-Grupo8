@@ -1,4 +1,5 @@
 import 'package:app_gastos_tp3_grupo8/screens/anadirGasto.dart';
+import 'package:app_gastos_tp3_grupo8/screens/anadirGastoGeneral.dart';
 import 'package:app_gastos_tp3_grupo8/screens/crearGrupo.dart';
 import 'package:app_gastos_tp3_grupo8/screens/crearGastoGrupo.dart';
 import 'package:app_gastos_tp3_grupo8/screens/verGastos.dart';
@@ -18,6 +19,7 @@ final appRouter = GoRouter(
     GoRoute(path: '/anadirGasto' ,builder: (context, state) => AnadirGasto(),),
     GoRoute(path: '/crearGastoGrupo' ,builder: (context, state) => CrearGastoGrupo(),),
     GoRoute(path: '/verGastos' ,builder: (context, state) => Gastos(),),
-    GoRoute(path: '/crearGrupo' ,builder: (context, state) => CrearGrupo(),)
+    GoRoute(path: '/crearGrupo' ,builder: (context, state) => CrearGrupo(),),
+     GoRoute(path: '/gastosGenerales', builder: (context, state) => const AnadirGastoGeneral()),
 
 ]);
