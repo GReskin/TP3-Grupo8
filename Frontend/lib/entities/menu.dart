@@ -22,7 +22,7 @@ List<Menu> menuList = [
     subtitle: "Ver tus gastos personales y grupales",
     description: "Consulta todos tus gastos desde una misma vista",
     icon: Icon(Icons.money_off),
-    path: "/verGastosGeneral", // 👉 Nueva ruta
+    path: "/verGastosGeneral",
   ),
 
   Menu(

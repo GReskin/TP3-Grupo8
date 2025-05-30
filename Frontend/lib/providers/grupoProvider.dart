@@ -41,6 +41,32 @@ Future<void> fetchGrupos(int usuarioId) async {
     rethrow;
   }
 }
+List<dynamic> gastosGrupo = [];
+bool isLoadingGastosGrupo = false;
+String? errorGastosGrupo;
+
+Future<List<dynamic>> fetchGastosPorGrupo(int idGrupo) async {
+  final url = Uri.parse('http://10.0.2.2:3000/api/gastos_grupo/$idGrupo');
+  
+  try {
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      gastosGrupo = jsonDecode(response.body);
+      notifyListeners();
+      return gastosGrupo;  // Retorna la lista para que quien llame la use
+    } else {
+      errorGastosGrupo = 'Error: ${response.statusCode}';
+      gastosGrupo = [];
+      notifyListeners();
+      return [];
+    }
+  } catch (e) {
+    errorGastosGrupo = 'Excepción: $e';
+    gastosGrupo = [];
+    notifyListeners();
+    return [];
+  }
+}
 
   Future<int?> obtenerCreadorId() async {
     final prefs = await SharedPreferences.getInstance();
