@@ -15,30 +15,15 @@ import 'package:flutter/material.dart';
 final appRouter = GoRouter(
   initialLocation: '/login',
   routes: [
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => Login(),
-    ),
-    GoRoute(
-      path: '/register',
-      builder: (context, state) => Register(),
-    ),
-    GoRoute(
-      path: '/home',
-      builder: (context, state) => Home(),
-    ),
-    GoRoute(
-      path: '/anadirGasto',
-      builder: (context, state) => AnadirGasto(),
-    ),
+    GoRoute(path: '/login', builder: (context, state) => Login()),
+    GoRoute(path: '/register', builder: (context, state) => Register()),
+    GoRoute(path: '/home', builder: (context, state) => Home()),
+    GoRoute(path: '/anadirGasto', builder: (context, state) => AnadirGasto()),
     GoRoute(
       path: '/crearGastoGrupo',
       builder: (context, state) => CrearGastoGrupo(),
     ),
-    GoRoute(
-      path: '/verGastos',
-      builder: (context, state) => Gastos(),
-    ),
+    GoRoute(path: '/verGastos', builder: (context, state) => Gastos()),
     // Ruta para ver gastos grupales, recibe el id del grupo por parámetro
     GoRoute(
       path: '/verGastosGrupales/:id',
@@ -50,7 +35,6 @@ final appRouter = GoRouter(
           );
         }
         return VerGastosGrupales(idGrupo: id);
-
       },
     ),
     // Ruta para ver gastos generales del usuario actual (async)
@@ -76,10 +60,7 @@ final appRouter = GoRouter(
         );
       },
     ),
-    GoRoute(
-      path: '/crearGrupo',
-      builder: (context, state) => CrearGrupo(),
-    ),
+    GoRoute(path: '/crearGrupo', builder: (context, state) => CrearGrupo()),
     GoRoute(
       path: '/gastosGenerales',
       builder: (context, state) => const AnadirGastoGeneral(),

@@ -54,13 +54,17 @@ class _VerGastosGeneralState extends State<VerGastosGeneral> {
       // Mostrar error en diálogo
       await showDialog(
         context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Error'),
-          content: Text(errorGrupos!),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
-          ],
-        ),
+        builder:
+            (_) => AlertDialog(
+              title: const Text('Error'),
+              content: Text(errorGrupos!),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            ),
       );
       return;
     }
@@ -69,13 +73,19 @@ class _VerGastosGeneralState extends State<VerGastosGeneral> {
       // Avisar que no hay grupos para seleccionar
       await showDialog(
         context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Atención'),
-          content: const Text('No se encontraron grupos para este usuario.'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar')),
-          ],
-        ),
+        builder:
+            (_) => AlertDialog(
+              title: const Text('Atención'),
+              content: const Text(
+                'No se encontraron grupos para este usuario.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            ),
       );
       return;
     }
@@ -85,14 +95,15 @@ class _VerGastosGeneralState extends State<VerGastosGeneral> {
       builder: (context) {
         return SimpleDialog(
           title: const Text("Selecciona un grupo"),
-          children: grupoProvider.grupos.map<Widget>((grupo) {
-            return SimpleDialogOption(
-              onPressed: () {
-                Navigator.pop(context, grupo['id'] as int);
-              },
-              child: Text(grupo['nombre']),
-            );
-          }).toList(),
+          children:
+              grupoProvider.grupos.map<Widget>((grupo) {
+                return SimpleDialogOption(
+                  onPressed: () {
+                    Navigator.pop(context, grupo['id'] as int);
+                  },
+                  child: Text(grupo['nombre']),
+                );
+              }).toList(),
         );
       },
     );
@@ -125,14 +136,12 @@ class _VerGastosGeneralState extends State<VerGastosGeneral> {
             const Gastos(), // Pantalla de gastos personales
             selectedGrupoId == null
                 ? Center(
-                    child: ElevatedButton(
-                      onPressed: _seleccionarGrupo,
-                      child: const Text("Selecciona un grupo para ver gastos"),
-                    ),
-                  )
-                : VerGastosGrupales(idGrupo: selectedGrupoId!)
-
-
+                  child: ElevatedButton(
+                    onPressed: _seleccionarGrupo,
+                    child: const Text("Selecciona un grupo para ver gastos"),
+                  ),
+                )
+                : VerGastosGrupales(idGrupo: selectedGrupoId!),
           ],
         ),
       ),

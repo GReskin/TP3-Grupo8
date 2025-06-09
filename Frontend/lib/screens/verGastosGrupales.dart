@@ -26,7 +26,6 @@ class _VerGastosGrupalesState extends State<VerGastosGrupales> {
     try {
       final grupoProvider = Provider.of<GrupoProvider>(context, listen: false);
       final resultado = await grupoProvider.fetchGastosPorGrupo(widget.idGrupo);
-
       setState(() {
         gastos = resultado;
         isLoading = false;
@@ -41,16 +40,14 @@ class _VerGastosGrupalesState extends State<VerGastosGrupales> {
 
   @override
   Widget build(BuildContext context) {
+    final grupoProvider = Provider.of<GrupoProvider>(context);
+
     if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (error != null) {
-      return Scaffold(
-        body: Center(child: Text('Error: $error')),
-      );
+      return Scaffold(body: Center(child: Text('Error: $error')));
     }
 
     if (gastos.isEmpty) {
@@ -59,70 +56,84 @@ class _VerGastosGrupalesState extends State<VerGastosGrupales> {
       );
     }
 
-    final total = gastos.fold<double>(
-  0.0,
-  (sum, g) => sum + (double.tryParse(g['monto'].toString()) ?? 0.0),
-);
+    final Map<String, double> gastosPorCategoria = {};
+    for (var gasto in gastos) {
+      final categoria = grupoProvider.getCategoriaName(gasto['idcategoria']);
+      gastosPorCategoria[categoria] =
+          (gastosPorCategoria[categoria] ?? 0) +
+          (double.tryParse(gasto['monto'].toString()) ?? 0.0);
+    }
 
+    final List<PieChartSectionData> pieSections =
+        gastosPorCategoria.entries.map((entry) {
+          final color = grupoProvider.colorForCategory(entry.key);
+          return PieChartSectionData(
+            color: color,
+            value: entry.value,
+            title: entry.key,
+            radius: 60,
+            titleStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Color.fromARGB(255, 0, 0, 0),
+            ),
+          );
+        }).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Gastos del Grupo')),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          Expanded(
-            flex: 2,
-            child: PieChart(
-              PieChartData(
-                sections: gastos.map((g) {
-  final monto = double.tryParse(g['monto'].toString()) ?? 0.0;
-  final porcentaje = total > 0 ? (monto / total * 100) : 0.0;
-
-  return PieChartSectionData(
-    value: monto,
-    title: '${porcentaje.toStringAsFixed(1)}%',
-    color: _colorForIndex(gastos.indexOf(g)),
-    radius: 80,
-    titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-  );
-}).toList(),
-
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Text(
+              "Distribución de gastos",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 200,
+              child: PieChart(
+                PieChartData(
+                  sections: pieSections,
+                  centerSpaceRadius: 40,
+                  sectionsSpace: 2,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            flex: 1,
-            child: ListView.builder(
-              itemCount: gastos.length,
-              itemBuilder: (context, index) {
-                final gasto = gastos[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: _colorForIndex(index),
-                  ),
-                  title: Text(gasto['descripcion'] ?? 'Sin descripción'),
-                  subtitle: Text('Monto: \$${gasto['monto']}'),
-                );
-              },
+            const SizedBox(height: 24),
+            const Text(
+              "Lista de gastos",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: gastos.length,
+                itemBuilder: (context, index) {
+                  final gasto = gastos[index];
+                  final categoria = grupoProvider.getCategoriaName(
+                    gasto['idcategoria'],
+                  );
+                  final color = grupoProvider.colorForCategory(categoria);
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: ListTile(
+                      leading: Icon(Icons.attach_money, color: color),
+                      title: Text(gasto['descripcion'] ?? 'Sin descripción'),
+                      subtitle: Text('$categoria - ${gasto['fecha'] ?? ''}'),
+                      trailing: Text(
+                        '\$${(double.tryParse(gasto['monto'].toString()) ?? 0.0).toStringAsFixed(2)}',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  // Helper para asignar colores distintos a cada sección
-  Color _colorForIndex(int index) {
-    const colores = [
-      Colors.blue,
-      Colors.green,
-      Colors.red,
-      Colors.orange,
-      Colors.purple,
-      Colors.teal,
-      Colors.brown,
-    ];
-    return colores[index % colores.length];
   }
 }
