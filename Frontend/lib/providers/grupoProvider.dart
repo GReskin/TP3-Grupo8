@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:app_gastos_tp3_grupo8/providers/gastoProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
@@ -83,28 +85,34 @@ class GrupoProvider with ChangeNotifier {
   List<Map<String, dynamic>> usuariosGrupo = [];
 
   Future<void> fetchUsuarios() async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://10.0.2.2:3000/api/usuarios'),
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) {
-          usuariosDisponibles = List<Map<String, dynamic>>.from(data);
-        } else {
-          usuariosDisponibles = [];
-          debugPrint('Formato inesperado en respuesta de usuarios');
-        }
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final creadorId = prefs.getInt('idusuario');
+
+    final response = await http.get(
+      Uri.parse('http://10.0.2.2:3000/api/usuarios'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data is List) {
+        usuariosDisponibles = List<Map<String, dynamic>>.from(data)
+            .where((usuario) => usuario['id'] != creadorId)
+            .toList();
       } else {
         usuariosDisponibles = [];
-        debugPrint("Error al cargar usuarios: ${response.statusCode}");
+        debugPrint('Formato inesperado en respuesta de usuarios');
       }
-    } catch (e) {
+    } else {
       usuariosDisponibles = [];
-      debugPrint("Excepción al cargar usuarios: $e");
+      debugPrint("Error al cargar usuarios: ${response.statusCode}");
     }
-    notifyListeners();
+  } catch (e) {
+    usuariosDisponibles = [];
+    debugPrint("Excepción al cargar usuarios: $e");
   }
+  notifyListeners();
+}
 
   Future<void> fetchCategorias() async {
     final response = await http.get(
@@ -183,48 +191,52 @@ class GrupoProvider with ChangeNotifier {
   }
 
   Future<void> crearGrupo(BuildContext context) async {
-    final nombreGrupo = nombreGrupoController.text.trim();
-    final creadorId = await obtenerCreadorId();
-    final usuariosIds = usuariosGrupo.map((u) => u['id']).toList();
+  final nombreGrupo = nombreGrupoController.text.trim();
+  final creadorId = await obtenerCreadorId();
 
-    if (nombreGrupo.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Debe ingresar nombre del grupo')));
-      return;
-    }
+  // Si por alguna razón el creador se agregó manualmente, lo eliminamos
+  usuariosGrupo.removeWhere((u) => u['id'] == creadorId);
 
-    try {
-      final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/grupos'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'nombre': nombreGrupo,
-          'creador_id': creadorId,
-          'usuarios': usuariosIds,
-        }),
-      );
+  final usuariosIds = usuariosGrupo.map((u) => u['id']).toList();
 
-      if (response.statusCode == 201) {
-        // Aquí va el bloque que mencionaste
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Grupo creado con éxito')));
-        await fetchGrupos(creadorId!); // <--- Esta línea aquí
-        nombreGrupoController.clear();
-        usuariosGrupo.clear();
-      } else {
-        final error = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${error['error'] ?? 'Desconocido'}')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error de conexión')));
-    }
+  if (nombreGrupo.isEmpty) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('El nombre del grupo no puede estar vacío')));
+    return;
   }
+
+  try {
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:3000/api/grupos'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'nombre': nombreGrupo,
+        'creador_id': creadorId,
+        'usuarios': usuariosIds,
+      }),
+    );
+
+    if (response.statusCode == 201) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Grupo creado con éxito')));
+      await fetchGrupos(creadorId!);
+      nombreGrupoController.clear();
+      usuariosGrupo.clear();
+    } else {
+      final error = jsonDecode(response.body);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${error['error'] ?? 'Desconocido'}')),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Error de conexión')));
+  }
+}
+
 
   String getCategoriaName(int id) {
     final categoria = categorias.firstWhere(

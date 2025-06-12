@@ -1,6 +1,8 @@
+import 'package:app_gastos_tp3_grupo8/providers/gastoProvider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:app_gastos_tp3_grupo8/providers/grupoProvider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CrearGrupo extends StatefulWidget {
   @override
@@ -23,19 +25,30 @@ class _CrearGrupoState extends State<CrearGrupo> {
   }
 
 void _validarYCrearGrupo() {
+  final gastoProvider = Provider.of<GastoProvider>(context, listen: false);
   if (grupoProvider.nombreGrupoController.text.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('El nombre del grupo no puede estar vacío')),
     );
     return;
   }
-  if (grupoProvider.usuariosGrupo.isEmpty) {
+  else if (grupoProvider.usuariosGrupo.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Debe agregar al menos un usuario al grupo')),
     );
     return;
   }
-  grupoProvider.crearGrupo(context);
+  
+  else if (gastoProvider.getIdUsuario() == usuarioSeleccionado) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No te podes agregar a vos mismo')),
+    );
+    return;
+  }else{
+    grupoProvider.crearGrupo(context);
+  }
+
+  
 }
 
   Future<void> _confirmarAgregarUsuario(

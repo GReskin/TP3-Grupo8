@@ -29,7 +29,7 @@ class GastoProvider with ChangeNotifier {
   bool get isLoadingGastos => _isLoadingGastos;
 
   // Obtener el ID del usuario desde SharedPreferences
-  Future<int?> _getIdUsuario() async {
+  Future<int?> getIdUsuario() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt('idusuario');
   }
@@ -55,7 +55,7 @@ class GastoProvider with ChangeNotifier {
 
   // Crear un nuevo gasto
   Future<void> crearGasto(String descripcion, String montoTexto) async {
-    final idusuario = await _getIdUsuario();
+    final idusuario = await getIdUsuario();
     if (idusuario == null) {
       _setGastoError("Usuario no logueado.");
       notifyListeners();
@@ -95,7 +95,7 @@ class GastoProvider with ChangeNotifier {
     _gastosError = null;
     notifyListeners();
 
-    final idusuario = await _getIdUsuario();
+    final idusuario = await getIdUsuario();
     if (idusuario == null) {
       _setGastosError("ID de usuario no encontrado.");
       return;
