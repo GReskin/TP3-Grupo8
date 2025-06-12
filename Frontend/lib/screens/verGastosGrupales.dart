@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/grupoProvider.dart';
+import '../providers/gastoProvider.dart';
 
 class VerGastosGrupales extends StatefulWidget {
   final int idGrupo;
@@ -19,12 +20,18 @@ class _VerGastosGrupalesState extends State<VerGastosGrupales> {
   @override
   void initState() {
     super.initState();
-    cargarGastos();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      cargarDatos();
+    });
   }
 
-  Future<void> cargarGastos() async {
+  Future<void> cargarDatos() async {
     try {
       final grupoProvider = Provider.of<GrupoProvider>(context, listen: false);
+      final gastoProvider = Provider.of<GastoProvider>(context, listen: false);
+
+      await gastoProvider.cargarCategorias(); // ⚠ ahora sí cargamos categorías
+
       final resultado = await grupoProvider.fetchGastosPorGrupo(widget.idGrupo);
       setState(() {
         gastos = resultado;
@@ -40,7 +47,7 @@ class _VerGastosGrupalesState extends State<VerGastosGrupales> {
 
   @override
   Widget build(BuildContext context) {
-    final grupoProvider = Provider.of<GrupoProvider>(context);
+    final gastoProvider = Provider.of<GastoProvider>(context);
 
     if (isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -58,7 +65,7 @@ class _VerGastosGrupalesState extends State<VerGastosGrupales> {
 
     final Map<String, double> gastosPorCategoria = {};
     for (var gasto in gastos) {
-      final categoria = grupoProvider.getCategoriaName(gasto['idcategoria']);
+      final categoria = gastoProvider.getCategoriaName(gasto['idcategoria']);
       gastosPorCategoria[categoria] =
           (gastosPorCategoria[categoria] ?? 0) +
           (double.tryParse(gasto['monto'].toString()) ?? 0.0);
@@ -66,7 +73,7 @@ class _VerGastosGrupalesState extends State<VerGastosGrupales> {
 
     final List<PieChartSectionData> pieSections =
         gastosPorCategoria.entries.map((entry) {
-          final color = grupoProvider.colorForCategory(entry.key);
+          final color = gastoProvider.colorForCategory(entry.key);
           return PieChartSectionData(
             color: color,
             value: entry.value,
@@ -112,10 +119,10 @@ class _VerGastosGrupalesState extends State<VerGastosGrupales> {
                 itemCount: gastos.length,
                 itemBuilder: (context, index) {
                   final gasto = gastos[index];
-                  final categoria = grupoProvider.getCategoriaName(
+                  final categoria = gastoProvider.getCategoriaName(
                     gasto['idcategoria'],
                   );
-                  final color = grupoProvider.colorForCategory(categoria);
+                  final color = gastoProvider.colorForCategory(categoria);
 
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 6),
